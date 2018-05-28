@@ -23,7 +23,7 @@ function consultTouristAttractions(request, response) {
     // Para consultar el parametro que envia Dialogflow sobre la informacion sobre las iglesias.
     var churchParameter = request.body.result.parameters.name_churches; 
 
-    var ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivos".
+    var ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivo".
 
     // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow. 
     ref.orderByChild("alias").equalTo(churchParameter).on("value", (snapshot) => {
@@ -33,8 +33,6 @@ function consultTouristAttractions(request, response) {
         snapshot.forEach((childSnapshot) => { // Recorremos el resultado de la busqueda.
             var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
             values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
-            values.nombre = childSnapshot.val().nombre; // Almacenamos el nombre del atractivo en una variable.
-            values.direccion = childSnapshot.val().direccion; // Almacenamos la descripcion del atractivo en una variable.
 
             // Se guardan los valores obtenidos en un arreglo.
             jsonResult = { estado: true, key: values.key, resultado: childSnapshot.val() };              
