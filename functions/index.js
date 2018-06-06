@@ -76,7 +76,7 @@ function consultarServicioAlojamiento(request, response, categoria) {
             sendResponseToDialogflow(response, resultToSendDialogflow, listaAlojamiento); // Enviamos el resultado a Dialogflow.
         } else {
             // Enviamos los valores da la consulta a Dialogflow.
-            resultToSendDialogflow = "Encontré esta información sobre los servicios de alojamiento";
+            resultToSendDialogflow = "Estos son algunos de los lugares que ofrecen servicio de "+ categoria + " en la zona ";
             sendResponseToDialogflow(response, resultToSendDialogflow, listaAlojamiento); // Enviamos el resultado a Dialogflow.
         }     
     });
@@ -92,8 +92,12 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         consultTouristAttractions(request, response);
         break
         case "consultarAlojamientoEnElArea":
-        // Llamamos a la funcion para consultar atractivos y enviamos request y response.
+        // Llamamos a la funcion para consultar servicios y enviamos request y response.
         consultarServicioAlojamiento(request, response, "Alojamiento");
+        break
+        case "consultarComidaYBebidaEnElArea":
+        // Llamamos a la funcion para consultar servicios y enviamos request y response.
+        consultarServicioAlojamiento(request, response, "Comidas y bebidas");
         break
         default:
         // En caso de que niguna accion sea identificada.
