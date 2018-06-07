@@ -18,15 +18,25 @@ function sendResponseToDialogflow(response, result, resultArray) {
 }
 
 // Funcion para consultar los atractivos por parametro obtenido de Dialogflow.
-function consultTouristAttractions(request, response) {
+function consultTouristAttractions(request, response, action) {
 
     // Para consultar el parametro que envia Dialogflow sobre la informacion sobre las iglesias.
-    var churchParameter = request.body.result.parameters.name_churches; 
+    var parameterAttractive = [];
+
+    if (action === "churchInformationAction") {
+        parameterAttractive.push(request.body.result.parameters.name_churches);
+    } else if (action === "churchShowLocationAction") {
+        var arrayContext = request.body.result.contexts;
+
+        arrayContext.forEach(objectContext => {
+            parameterAttractive.push(objectContext.parameters.name_churches);
+        });
+    }
 
     var ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivo".
 
     // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow. 
-    ref.orderByChild("alias").equalTo(churchParameter).on("value", (snapshot) => {
+    ref.orderByChild("alias").equalTo(parameterAttractive[0]).on("value", (snapshot) => {
         
         let jsonResult = {}; // Para almacenar todos los datos encontrados con el parametro y almacenarlo con su key respectivo.
 
@@ -47,8 +57,14 @@ function consultTouristAttractions(request, response) {
             sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
         } else {
             // Enviamos los valores da la consulta a Dialogflow.
-            resultToSendDialogflow = "Atractivo turistico consultado con exito.";
-            sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
+            if (action === "churchInformationAction") {
+                resultToSendDialogflow = "¿Deseas saber la ruta de la iglesia " + parameterAttractive[0] + "?";
+                sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
+            } else if (action === "churchShowLocationAction") {
+                resultToSendDialogflow = "Consultado con exito la iglesia " + parameterAttractive[0];
+                sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
+            }
+            
         }     
     });
 }
@@ -89,7 +105,7 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
     switch (accion) {
         case "churchInformationAction":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        consultTouristAttractions(request, response);
+        consultTouristAttractions(request, response, "churchInformationAction");
         break
         case "consultarAlojamientoEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
@@ -98,6 +114,10 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         case "consultarComidaYBebidaEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
         consultarServicioAlojamiento(request, response, "Comidas y bebidas");
+        break
+        case "churchShowLocationAction":
+        // Llamamos a la funcion para consultar atractivos y enviamos request y response.
+        consultTouristAttractions(request, response, "churchShowLocationAction");
         break
         default:
         // En caso de que niguna accion sea identificada.
