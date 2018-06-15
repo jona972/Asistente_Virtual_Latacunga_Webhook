@@ -113,7 +113,7 @@ function getServiceByAlias(request, response, action) {
                 break
                 case "hotel_information_intent.hotel_information_intent-yes":
                 // Enviamos los valores da la consulta a Dialogflow.
-                resultToSendDialogflow = "Este es el camino que deberías tomar para llegar al servicio" + parameters[0];
+                resultToSendDialogflow = "Este es el camino que deberías tomar para llegar al servicio " + parameters[0];
                 sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
                 break
             }
@@ -179,17 +179,11 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
     // Revisamos la accion para llamar a la funcion correcta
     switch (accion) {
         case "churchInformationAction":
-        // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        getTouristAttractionByAlias(request, response, accion);
-        break
-        case "hotelInformationAction":
-        // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServiceByAlias(request, response, accion);
-        break
         case "churchShowLocationAction":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
         getTouristAttractionByAlias(request, response, accion);
         break
+        case "hotelInformationAction":
         case "hotel_information_intent.hotel_information_intent-yes":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
         getServiceByAlias(request, response, accion);
