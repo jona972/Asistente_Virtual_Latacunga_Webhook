@@ -49,7 +49,6 @@ function getDialogflowParameters(request, action) {
 // Funcion para consultar los atractivos por parametro obtenido de Dialogflow.
 function getTouristAttractionByAlias(request, response, action) {
     var parameters = getDialogflowParameters(request, action); // Obtenemos los parametros de Dialogflow
-    Console.log("PARAMETRO:" + parameters[0]);
     
     var ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivo".
 
@@ -209,6 +208,6 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         break
         default:
         // En caso de que niguna accion sea identificada.
-        sendResponseToDialogflow(response, "La acción no fue identificada", jsonResult);
+        sendResponseToDialogflow(response, "La acción no fue identificada", null);
     }
 });
