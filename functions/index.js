@@ -14,12 +14,17 @@ function sendResponseToDialogflow(response, result, resultArray) {
     response.setHeader('Content-Type', 'application/json'); 
 
     // Enviamos la respuesta a Dialogflow con el texto que contiene el mensaje.
-    return response.send(JSON.stringify({ 'speech': result, 'displayText': result, 'data': resultArray }));
+    return response.send(JSON.stringify({ 
+        'speech': result, 
+        'displayText': result, 
+        'data': resultArray
+     }));
 }
 
 // Funcion para obtener los parametros enviados por Dialogflow
 function getDialogflowParameters(request, action) {
     var parameters = [];
+    var arrayContext = request.body.result.contexts;
     switch(action) {
         case "churchInformationAction":
         parameters.push(request.body.result.parameters.name_churches);
@@ -28,9 +33,13 @@ function getDialogflowParameters(request, action) {
         parameters.push(request.body.result.parameters.name_accommodation);
         break
         case "churchShowLocationAction":
-        var arrayContext = request.body.result.contexts;
         arrayContext.forEach(objectContext => {
-        parameters.push(objectContext.parameters.name_churches);
+            parameters.push(objectContext.parameters.name_churches);
+        });
+        break
+        case "hotel_information_intent.hotel_information_intent-yes":
+        arrayContext.forEach(objectContext => {
+            parameters.push(objectContext.parameters.name_accommodation);
         });
         break
     }
@@ -97,9 +106,18 @@ function getServiceByAlias(request, response, action) {
             " O tal vez, no está en nuestra base de datos.";
             sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
         } else {
-            // Enviamos los valores da la consulta a Dialogflow.
-            resultToSendDialogflow = "Esta es la información que pude encontrar sobre el servicio " + parameters[0];
-            sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
+            switch(action){
+                case "hotelInformationAction":
+                // Enviamos los valores da la consulta a Dialogflow.
+                resultToSendDialogflow = "Esta es la información que pude encontrar sobre el servicio " + parameters[0] + ". ¿Te gustaría saber cómo llegar?";
+                sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
+                break
+                case "hotel_information_intent.hotel_information_intent-yes":
+                // Enviamos los valores da la consulta a Dialogflow.
+                resultToSendDialogflow = "Este es el camino que deberías tomar para llegar al servicio" + parameters[0];
+                sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
+                break
+            }
         }  
     });
 }
@@ -163,15 +181,19 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
     switch (accion) {
         case "churchInformationAction":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        getTouristAttractionByAlias(request, response, "churchInformationAction");
+        getTouristAttractionByAlias(request, response, accion);
         break
         case "hotelInformationAction":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServiceByAlias(request, response, "hotelInformationAction");
+        getServiceByAlias(request, response, accion);
         break
         case "churchShowLocationAction":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        getTouristAttractionByAlias(request, response, "churchShowLocationAction");
+        getTouristAttractionByAlias(request, response, accion);
+        break
+        case "hotel_information_intent.hotel_information_intent-yes":
+        // Llamamos a la funcion para consultar servicios y enviamos request y response.
+        getServiceByAlias(request, response, accion);
         break
         case "consultarAtractivoEnElArea":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
