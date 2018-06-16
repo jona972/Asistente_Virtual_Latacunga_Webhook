@@ -192,6 +192,10 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
         getTouristAttraction(request, response);
         break
+        case "consultarAgenciasDeViajeEnElArea":
+        // Llamamos a la funcion para consultar servicios y enviamos request y response.
+        getServicesByCategoria(request, response, "Agencia de viajes");
+        break
         case "consultarAlojamientoEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
         getServicesByCategoria(request, response, "Alojamiento");
@@ -199,6 +203,10 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         case "consultarComidaYBebidaEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
         getServicesByCategoria(request, response, "Comidas y bebidas");
+        break
+        case "consultarRecreacionDiversionEsparcimientoEnElArea":
+        // Llamamos a la funcion para consultar servicios y enviamos request y response.
+        getServicesByCategoria(request, response, "Recreación, diversión, esparcimiento");
         break
         default:
         // En caso de que niguna accion sea identificada.
