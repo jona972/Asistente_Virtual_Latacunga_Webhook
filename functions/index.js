@@ -32,7 +32,7 @@ function getDialogflowParameters(request, action) {
         case "hotelInformationAction":
         parameters.push(request.body.result.parameters.name_accommodation);
         break
-        case "churchShowLocationAction":
+        case "church_information_intent.church_information_intent-yes":
         arrayContext.forEach(objectContext => {
             parameters.push(objectContext.parameters.name_churches);
         });
@@ -66,16 +66,18 @@ function getTouristAttractionByAlias(request, response, action) {
         let resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
         if (Object.keys(jsonResult).length === 0) {
             // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
-            resultToSendDialogflow = "Asegurese que el nombre del atractivo este bien ingresado, o talvez esté " +
+            resultToSendDialogflow = "Lo siento, no pude encontrar la información necesaria para responder tu duda." +
+            " Por favor, asegúrese que el nombre del atractivo este bien ingresado, o talvez esté " +
             "no pertenezca al centro historico de la ciudad de Latacunga.";
             sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
         } else {
             // Enviamos los valores da la consulta a Dialogflow.
             if (action === "churchInformationAction") {
-                resultToSendDialogflow = "¿Deseas saber la ruta de la iglesia " + parameters[0] + "?";
+                resultToSendDialogflow = "Esta es la información que pude encontrar sobre la Iglesia " + parameters[0] + 
+                ". ¿Te gustaría saber cómo llegar?";
                 sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
-            } else if (action === "churchShowLocationAction") {
-                resultToSendDialogflow = "Consultado con exito la iglesia " + parameters[0];
+            } else if (action === "church_information_intent.church_information_intent-yes") {
+                resultToSendDialogflow = "Este es el camino que deberías tomar para llegar a la Iglesia " + parameters[0];
                 sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult); // Enviamos el resultado a Dialogflow.
             }
             
@@ -108,7 +110,8 @@ function getServiceByAlias(request, response, action) {
             switch(action){
                 case "hotelInformationAction":
                 // Enviamos los valores da la consulta a Dialogflow.
-                resultToSendDialogflow = "Esta es la información que pude encontrar sobre el servicio " + parameters[0] + ". ¿Te gustaría saber cómo llegar?";
+                resultToSendDialogflow = "Esta es la información que pude encontrar sobre el servicio " + parameters[0] + 
+                ". ¿Te gustaría saber cómo llegar?";
                 sendResponseToDialogflow(response, resultToSendDialogflow, listaServicio); // Enviamos el resultado a Dialogflow.
                 break
                 case "hotel_information_intent.hotel_information_intent-yes":
@@ -179,7 +182,7 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
     // Revisamos la accion para llamar a la funcion correcta
     switch (accion) {
         case "churchInformationAction":
-        case "churchShowLocationAction":
+        case "church_information_intent.church_information_intent-yes":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
         getTouristAttractionByAlias(request, response, accion);
         break
