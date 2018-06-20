@@ -29,17 +29,17 @@ function getDialogflowParameters(request, action) {
         case "churchInformationAction":
         parameters.push(request.body.result.parameters.name_churches);
         break
-        case "hotelInformationAction":
-        parameters.push(request.body.result.parameters.name_accommodation);
+        case "serviceInformationAction":
+        parameters.push(request.body.result.parameters.name_services);
         break
         case "church_information_intent.church_information_intent-yes":
         arrayContext.forEach(objectContext => {
             parameters.push(objectContext.parameters.name_churches);
         });
         break
-        case "hotel_information_intent.hotel_information_intent-yes":
+        case "service_information_intent.service_information_intent-yes":
         arrayContext.forEach(objectContext => {
-            parameters.push(objectContext.parameters.name_accommodation);
+            parameters.push(objectContext.parameters.name_services);
         });
         break
     }
@@ -89,7 +89,7 @@ function getTouristAttractionByAlias(request, response, action) {
 function getServiceByAlias(request, response, action) {
     var parameters = getDialogflowParameters(request, action); // Obtenemos los parametros de Dialogflow
     var ref = admin.database().ref("servicio"); // Creamos una variable que  apunta al nodo "servicio".
-
+    console.log(parameters[0]);
     // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow. 
     ref.orderByChild("alias").equalTo(parameters[0]).on("value", (snapshot) => {
         var listaServicio = {} // Para almacenar todos los datos encontrados.
@@ -186,8 +186,8 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest((request, r
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
         getTouristAttractionByAlias(request, response, accion);
         break
-        case "hotelInformationAction":
-        case "hotel_information_intent.hotel_information_intent-yes":
+        case "serviceInformationAction":
+        case "service_information_intent.service_information_intent-yes":
         // Llamamos a la funcion para consultar servicios y enviamos request y response.
         getServiceByAlias(request, response, accion);
         break
