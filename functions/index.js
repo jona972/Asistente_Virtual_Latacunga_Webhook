@@ -25,15 +25,15 @@ function getDialogflowParameters(request, action) {
   parameters = [];
   arrayContext = request.body.result.contexts;
   switch (action) {
-    case "churchInformationAction":
-      parameters.push(request.body.result.parameters.name_churches);
+    case "attractionInformationAction":
+      parameters.push(request.body.result.parameters.name_attraction);
       break;
     case "serviceInformationAction":
       parameters.push(request.body.result.parameters.name_services);
       break;
-    case "church_information_intent.church_information_intent-yes":
+    case "attraction_information_intent.attraction_information_intent-yes":
       arrayContext.forEach(objectContext => {
-        parameters.push(objectContext.parameters.name_churches);
+        parameters.push(objectContext.parameters.name_attraction);
       });
       break;
     case "service_information_intent.service_information_intent-yes":
@@ -60,11 +60,7 @@ function getTouristAttractionByAlias(request, response, action) {
       var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
       values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
       // Se guardan los valores obtenidos en un arreglo.
-      jsonResult = {
-        estado: true,
-        key: values.key,
-        resultado: childSnapshot.val()
-      };
+      jsonResult[values.key] = childSnapshot.val();
     });
     if (Object.keys(jsonResult).length === 0) {
       // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
@@ -74,16 +70,16 @@ function getTouristAttractionByAlias(request, response, action) {
         "no pertenezca al centro historico de la ciudad de Latacunga.";
     } else {
       // Enviamos los valores da la consulta a Dialogflow.
-      if (action === "churchInformationAction") {
+      if (action === "attractionInformationAction") {
         resultToSendDialogflow = "Esta es la información que pude encontrar sobre la Iglesia " +
         parameters[0] + ". ¿Te gustaría saber cómo llegar?";
-      } else if (action === "church_information_intent.church_information_intent-yes") {
+      } else if (action === "attraction_information_intent.attraction_information_intent-yes") {
         resultToSendDialogflow = "Este es el camino que deberías tomar para llegar a la Iglesia " + 
         parameters[0];
       }
     }
     // Enviamos el resultado a Dialogflow.
-    return sendResponseToDialogflow(response,resultToSendDialogflow,jsonResult);
+    return sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult);
   });
 }
 
@@ -194,8 +190,8 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest(
     let accion = request.body.result.action;
     // Revisamos la accion para llamar a la funcion correcta
     switch (accion) {
-      case "churchInformationAction":
-      case "church_information_intent.church_information_intent-yes":
+      case "attractionInformationAction":
+      case "attraction_information_intent.attraction_information_intent-yes":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
         getTouristAttractionByAlias(request, response, accion);
         break;
