@@ -47,7 +47,8 @@ function getDialogflowParameters(request, action) {
 
 // Funcion para consultar los atractivos por parametro obtenido de Dialogflow.
 function getTouristAttractionByAlias(request, response, action) {
-  var parameters, ref;
+  var parameters, ref, nameAttraction;
+  nameAttraction = [];
   parameters = getDialogflowParameters(request, action); // Obtenemos los parametros de Dialogflow
   ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivo".
   // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow.
@@ -59,6 +60,7 @@ function getTouristAttractionByAlias(request, response, action) {
       // Recorremos el resultado de la busqueda.
       var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
       values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
+      nameAttraction.push(childSnapshot.val().nombre); // Almacenamos el nombre del atractivo en una variable.
       // Se guardan los valores obtenidos en un arreglo.
       jsonResult[values.key] = childSnapshot.val();
     });
@@ -67,15 +69,15 @@ function getTouristAttractionByAlias(request, response, action) {
       resultToSendDialogflow =
         "Lo siento, no pude encontrar la información necesaria para responder tu duda." +
         " Por favor, asegúrese que el nombre del atractivo este bien ingresado, o talvez esté " +
-        "no pertenezca al centro historico de la ciudad de Latacunga.";
+        "no pertenezca al centro histórico de la ciudad de Latacunga.";
     } else {
       // Enviamos los valores da la consulta a Dialogflow.
       if (action === "attractionInformationAction") {
-        resultToSendDialogflow = "Esta es la información que pude encontrar sobre la Iglesia " +
-        parameters[0] + ". ¿Te gustaría saber cómo llegar?";
+        resultToSendDialogflow = "Esta es la información que pude encontrar sobre el atractivo " +
+        nameAttraction + ". ¿Te gustaría saber cómo llegar?";
       } else if (action === "attraction_information_intent.attraction_information_intent-yes") {
-        resultToSendDialogflow = "Este es el camino que deberías tomar para llegar a la Iglesia " + 
-        parameters[0];
+        resultToSendDialogflow = "Este es el camino que deberías tomar para llegar a " + 
+        nameAttraction;
       }
     }
     // Enviamos el resultado a Dialogflow.
@@ -124,7 +126,7 @@ function getServiceByAlias(request, response, action) {
 }
 
 // Funcion para consultar los servicios por categoria.
-function getServicesByCategoria(response, categoria) {
+function getServicesByCategoria(response, categoria, atractivos) {
   var ref;
   ref = admin.database().ref("servicio"); // Creamos una variable que  apunta al nodo "servicio".
   // Buscamos todos los servicios que sean de la categoria buscada
@@ -145,9 +147,15 @@ function getServicesByCategoria(response, categoria) {
           "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
       } else {
         // Enviamos los valores da la consulta a Dialogflow.
-        resultToSendDialogflow =
+        if (!atractivos) { // Sirve para cuando el usuario quiera saber atractivos turisticos fuera de la zona.
+          resultToSendDialogflow = "Lo siento, no puedo brindarle información de estos atractivos turísticos, " +  
+          "porque no pertenecen al centro histórico de la ciudad de Latacunga. Sin embargo, te puedo mostrar las " + 
+          "siguientes agencias de viajes que hay en la zona.";
+        } else { // Para dar la respuesta normal consultado de Firebase.
+          resultToSendDialogflow =
           "Estos son algunos de los lugares que ofrecen servicio de " +
           categoria + " en la zona ";
+        }
       }
       // Enviamos el resultado a Dialogflow.
       return sendResponseToDialogflow( response, resultToSendDialogflow, listaServicio );
@@ -205,21 +213,25 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest(
         getTouristAttractions(response);
         break;
       case "consultarAgenciasDeViajeEnElArea":
-        // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServicesByCategoria(response, "Agencia de viajes");
+        // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
+        getServicesByCategoria(response, "Agencia de viajes", true);
         break;
       case "consultarAlojamientoEnElArea":
-        // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServicesByCategoria(response, "Alojamiento");
+        // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
+        getServicesByCategoria(response, "Alojamiento", true);
         break;
       case "consultarComidaYBebidaEnElArea":
-        // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServicesByCategoria(response, "Comidas y bebidas");
+        // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
+        getServicesByCategoria(response, "Comidas y bebidas", true);
         break;
       case "consultarRecreacionDiversionEsparcimientoEnElArea":
-        // Llamamos a la funcion para consultar servicios y enviamos request y response.
-        getServicesByCategoria(response, "Recreación, diversión, esparcimiento");
+        // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
+        getServicesByCategoria(response, "Recreación, diversión, esparcimiento", true);
         break;
+      case "attractionOutsideHistoricCenterAction":
+        // Llamamos a la funcion para consultar servicios y enviamos request, response y false.
+        getServicesByCategoria(response, "Agencia de viajes", false);
+        break;  
       default:
         // En caso de que niguna accion sea identificada.
         sendResponseToDialogflow(response, "La acción no fue identificada", null);
