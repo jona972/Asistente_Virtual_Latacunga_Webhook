@@ -86,33 +86,51 @@ function getTouristAttractionByAlias(request, response, action) {
 }
 
 // Funcion para consultar los atractivos.
-function getTouristAttractions(response) {
+function getTouristAttractions(request, response) {
   var ref;
+  // Variable para obtener el subtipo del atractivo de Dialogflow.
+  var subType = request.body.result.parameters.subtype_attraction;
   ref = admin.database().ref("atractivo"); // Creamos una variable que  apunta al nodo "atractivo".
   // Buscamos todos los atractivos ordenados por categoria
-  return ref.orderByChild("categoria").once("value")
-  .then( snapshot => {
-    var listaAtractivo = {}; // Para almacenar todos los datos encontrados.
-    var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
-    snapshot.forEach( childSnapshot => {
-      // Recorremos el resultado de la busqueda.
-      var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
-      values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
-      // Se guardan los valores obtenidos en un arreglo.
-      listaAtractivo[values.key] = childSnapshot.val();
+  if (subType !== null) {
+    return ref.orderByChild("subtipo").equalTo(subType).once("value").then( snapshot => {
+      return getAttractions(response, snapshot, true); // Si se encontro de que subtipo es el atractivo.
     });
-    if (Object.keys(listaAtractivo).length === 0) {
-      // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
-      resultToSendDialogflow =
-        "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
-    } else {
-      // Enviamos los valores da la consulta a Dialogflow.
-      resultToSendDialogflow =
-        "Estos son los atractivos turísticos del centro histórico";
-    }
-    // Enviamos el resultado a Dialogflow.
-    return sendResponseToDialogflow(response, resultToSendDialogflow, listaAtractivo);
+  } else {
+    return ref.orderByChild("categoria").once("value").then( snapshot => {
+      return getAttractions(response, snapshot, false); // Si no se encontro de que subtipo es el atractivo.
+    });
+  }
+}
+
+// Función para obtener los todos atractivos o sino para obtenerlos por su sub tipo.
+function getAttractions(response, snapshot, typeMessage) {
+  var listaAtractivo = {}; // Para almacenar todos los datos encontrados.
+  var subtype = [];
+  var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
+  snapshot.forEach( childSnapshot => {
+    // Recorremos el resultado de la busqueda.
+    var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
+    values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
+    subtype.push(childSnapshot.val().subtipo); // Almacenamos el subtipo del atractivo en una variable.
+    // Se guardan los valores obtenidos en un arreglo.
+    listaAtractivo[values.key] = childSnapshot.val();
   });
+  if (Object.keys(listaAtractivo).length === 0) {
+    // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
+    resultToSendDialogflow =
+      "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
+  } else {
+    // Enviamos los valores da la consulta a Dialogflow.
+    if (!typeMessage) { // Si no se encontro de que subtipo es el atractivo.
+      resultToSendDialogflow = "Estos son los atractivos turísticos del centro histórico";
+    } else { // Si se encontro de que subtipo es el atractivo.
+      resultToSendDialogflow = "Estos son los atractivos turísticos del centro histórico que pertenecen al sub tipo de " + 
+      subtype[0];
+    }
+  }
+  // Enviamos el resultado a Dialogflow.
+  return sendResponseToDialogflow(response, resultToSendDialogflow, listaAtractivo);
 }
 
 // Funcion para consultar los servicios por parametro obtenido de Dialogflow.
@@ -210,7 +228,7 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest(
         break;
       case "consultarAtractivoEnElArea":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        getTouristAttractions(response);
+        getTouristAttractions(request, response);
         break;
       case "consultarAgenciasDeViajeEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
