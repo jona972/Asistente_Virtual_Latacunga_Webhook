@@ -45,6 +45,17 @@ function getDialogflowParameters(request, action) {
   return parameters;
 }
 
+function searchTouristAttractions(request, response) {
+  // Obtener los parametros de Dialogflow.
+  var subType;
+  subType = request.body.result.parameters.subtype_attraction;
+  if (subType === null || subType === "") {
+    return getTouristAttractions(response); // Consultar todos los atractivos
+  } else {
+    return getTouristAttractionsBySubTipo(subType, response); // Consultar atractivo por subtipo
+  }
+}
+
 // Funcion para consultar los atractivos por parametro obtenido de Dialogflow.
 function getTouristAttractionByAlias(request, response, action) {
   var parameters, ref, nameAttraction;
@@ -52,95 +63,136 @@ function getTouristAttractionByAlias(request, response, action) {
   parameters = getDialogflowParameters(request, action); // Obtenemos los parametros de Dialogflow
   ref = admin.database().ref("atractivo"); // Creamos una variable que contiene el nodo "atractivo".
   // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow.
-  return ref.orderByChild("alias").equalTo(parameters[0]).once("value")
-  .then( snapshot => {
-    var jsonResult = {}; // Para almacenar todos los datos encontrados con el parametro y almacenarlo con su key respectivo.
-    var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
-    snapshot.forEach(childSnapshot => {
-      // Recorremos el resultado de la busqueda.
-      var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
-      values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
-      nameAttraction.push(childSnapshot.val().nombre); // Almacenamos el nombre del atractivo en una variable.
-      // Se guardan los valores obtenidos en un arreglo.
-      jsonResult[values.key] = childSnapshot.val();
-    });
-    if (Object.keys(jsonResult).length === 0) {
-      // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
-      resultToSendDialogflow =
-        "Lo siento, no pude encontrar la información necesaria para responder tu duda." +
-        " Por favor, asegúrese que el nombre del atractivo este bien ingresado, o talvez esté " +
-        "no pertenezca al centro histórico de la ciudad de Latacunga.";
-    } else {
-      // Enviamos los valores da la consulta a Dialogflow.
-      if (action === "attractionInformationAction") {
-        resultToSendDialogflow = "Esta es la información que pude encontrar sobre el atractivo " +
-        nameAttraction + ". ¿Te gustaría saber cómo llegar?";
-      } else if (action === "attraction_information_intent.attraction_information_intent-yes") {
-        resultToSendDialogflow = "Este es el camino que deberías tomar para llegar a " + 
-        nameAttraction;
+  return ref
+    .orderByChild("alias")
+    .equalTo(parameters[0])
+    .once("value")
+    .then(snapshot => {
+      var jsonResult = {}; // Para almacenar todos los datos encontrados con el parametro y almacenarlo con su key respectivo.
+      var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
+      snapshot.forEach(childSnapshot => {
+        // Recorremos el resultado de la busqueda.
+        var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
+        values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
+        nameAttraction.push(childSnapshot.val().nombre); // Almacenamos el nombre del atractivo en una variable.
+        // Se guardan los valores obtenidos en un arreglo.
+        jsonResult[values.key] = childSnapshot.val();
+      });
+      if (Object.keys(jsonResult).length === 0) {
+        // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
+        resultToSendDialogflow =
+          "Lo siento, no pude encontrar la información necesaria para responder tu duda." +
+          " Por favor, asegúrese que el nombre del atractivo este bien ingresado, o talvez esté " +
+          "no pertenezca al centro histórico de la ciudad de Latacunga.";
+      } else {
+        // Enviamos los valores da la consulta a Dialogflow.
+        if (action === "attractionInformationAction") {
+          resultToSendDialogflow =
+            "Esta es la información que pude encontrar sobre el atractivo " +
+            nameAttraction +
+            ". ¿Te gustaría saber cómo llegar?";
+        } else if (
+          action ===
+          "attraction_information_intent.attraction_information_intent-yes"
+        ) {
+          resultToSendDialogflow =
+            "Este es el camino que deberías tomar para llegar a " +
+            nameAttraction;
+        }
       }
-    }
-    // Enviamos el resultado a Dialogflow.
-    return sendResponseToDialogflow(response, resultToSendDialogflow, jsonResult);
-  });
+      // Enviamos el resultado a Dialogflow.
+      return sendResponseToDialogflow(
+        response,
+        resultToSendDialogflow,
+        jsonResult
+      );
+    });
 }
 
-// Funcion para consultar los atractivos.
-function getTouristAttractions(request, response) {
+// Función para obtener los todos atractivos.
+function getTouristAttractions(response) {
   var ref;
-  // Variable para obtener el subtipo del atractivo de Dialogflow.
-  var subType = request.body.result.parameters.subtype_attraction;
   ref = admin.database().ref("atractivo"); // Creamos una variable que  apunta al nodo "atractivo".
-  // Buscamos todos los atractivos ordenados por categoria
-  if (subType !== null) {
-    return ref.orderByChild("subtipo").equalTo(subType).once("value").then( snapshot => {
-      return getAttractions(response, snapshot, true); // Si se encontro de que subtipo es el atractivo.
+  // Buscamos todos los atractivos ordenados por Sub Tipo
+  return ref
+    .orderByChild("categoria")
+    .once("value")
+    .then(snapshot => {
+      var listaAtractivo = {}; // Para almacenar todos los datos encontrados.
+      var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
+      snapshot.forEach(childSnapshot => {
+        // Recorremos el resultado de la busqueda.
+        var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
+        values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
+        // Se guardan los valores obtenidos en un arreglo.
+        listaAtractivo[values.key] = childSnapshot.val();
+      });
+      if (Object.keys(listaAtractivo).length === 0) {
+        // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
+        resultToSendDialogflow =
+          "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
+      } else {
+        resultToSendDialogflow =
+          "Estos son los atractivos turísticos del centro histórico";
+      }
+      // Enviamos el resultado a Dialogflow.
+      return sendResponseToDialogflow(
+        response,
+        resultToSendDialogflow,
+        listaAtractivo
+      );
     });
-  } else {
-    return ref.orderByChild("categoria").once("value").then( snapshot => {
-      return getAttractions(response, snapshot, false); // Si no se encontro de que subtipo es el atractivo.
-    });
-  }
 }
 
-// Función para obtener los todos atractivos o sino para obtenerlos por su sub tipo.
-function getAttractions(response, snapshot, typeMessage) {
-  var listaAtractivo = {}; // Para almacenar todos los datos encontrados.
-  var subtype = [];
-  var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
-  snapshot.forEach( childSnapshot => {
-    // Recorremos el resultado de la busqueda.
-    var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
-    values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
-    subtype.push(childSnapshot.val().subtipo); // Almacenamos el subtipo del atractivo en una variable.
-    // Se guardan los valores obtenidos en un arreglo.
-    listaAtractivo[values.key] = childSnapshot.val();
-  });
-  if (Object.keys(listaAtractivo).length === 0) {
-    // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
-    resultToSendDialogflow =
-      "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
-  } else {
-    // Enviamos los valores da la consulta a Dialogflow.
-    if (!typeMessage) { // Si no se encontro de que subtipo es el atractivo.
-      resultToSendDialogflow = "Estos son los atractivos turísticos del centro histórico";
-    } else { // Si se encontro de que subtipo es el atractivo.
-      resultToSendDialogflow = "Estos son los atractivos turísticos del centro histórico que pertenecen al sub tipo de " + 
-      subtype[0];
-    }
-  }
-  // Enviamos el resultado a Dialogflow.
-  return sendResponseToDialogflow(response, resultToSendDialogflow, listaAtractivo);
+// Función para consultar los atractivos por Sub Tipo
+function getTouristAttractionsBySubTipo(subTipo, response) {
+  var ref;
+  ref = admin.database().ref("atractivo"); // Creamos una variable que  apunta al nodo "atractivo".
+  // Buscamos todos los atractivos ordenados por Sub Tipo
+  return ref
+    .orderByChild("subtipo")
+    .equalTo(subTipo)
+    .once("value")
+    .then(snapshot => {
+      var listaAtractivo = {}; // Para almacenar todos los datos encontrados.
+      var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
+      snapshot.forEach(childSnapshot => {
+        // Recorremos el resultado de la busqueda.
+        var values = childSnapshot.val(); // Obtenemos un JSON con todos los valores consultados.
+        values.key = childSnapshot.key; // Almacenamos la clave del atractivo en una variable.
+        // Se guardan los valores obtenidos en un arreglo.
+        listaAtractivo[values.key] = childSnapshot.val();
+      });
+      if (Object.keys(listaAtractivo).length === 0) {
+        // Enviamos un mensaje de que no se encontro ningun valor con el parametro dado por el usuario.
+        resultToSendDialogflow =
+          "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
+      } else {
+        // Si se encontro de que subtipo es el atractivo.
+        resultToSendDialogflow =
+          "Estos son los atractivos turísticos del centro histórico que pertenecen al sub tipo de " +
+          subTipo;
+      }
+      // Enviamos el resultado a Dialogflow.
+      return sendResponseToDialogflow(
+        response,
+        resultToSendDialogflow,
+        listaAtractivo
+      );
+    });
 }
 
-// Funcion para consultar los servicios por parametro obtenido de Dialogflow.
+// Funcion para consultar los servicios por Alias.
 function getServiceByAlias(request, response, action) {
   var parameters, ref;
   parameters = getDialogflowParameters(request, action); // Obtenemos los parametros de Dialogflow
   ref = admin.database().ref("servicio"); // Creamos una variable que contiene el nodo "servicio".
   // Buscamos todos los datos que sean igual al alias definido en la base de datos con el parametro obtenido de Dialogflow.
-  return ref.orderByChild("alias").equalTo(parameters[0]).once("value")
-  .then( snapshot => {
+  return ref
+    .orderByChild("alias")
+    .equalTo(parameters[0])
+    .once("value")
+    .then(snapshot => {
       var jsonResult = {}; // Para almacenar todos los datos encontrados con el parametro y almacenarlo con su key respectivo.
       var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
       snapshot.forEach(childSnapshot => {
@@ -161,25 +213,35 @@ function getServiceByAlias(request, response, action) {
         if (action === "serviceInformationAction") {
           resultToSendDialogflow =
             "Esta es la información que pude encontrar sobre el servicio " +
-            parameters[0] + ". ¿Te gustaría saber cómo llegar?";
-        } else if (action === "service_information_intent.service_information_intent-yes") {
+            parameters[0] +
+            ". ¿Te gustaría saber cómo llegar?";
+        } else if (
+          action === "service_information_intent.service_information_intent-yes"
+        ) {
           resultToSendDialogflow =
             "Este es el camino que deberías tomar para llegar al servicio " +
             parameters[0];
         }
       }
-    // Enviamos el resultado a Dialogflow.
-    return sendResponseToDialogflow(response,resultToSendDialogflow,jsonResult);
+      // Enviamos el resultado a Dialogflow.
+      return sendResponseToDialogflow(
+        response,
+        resultToSendDialogflow,
+        jsonResult
+      );
     });
 }
 
-// Funcion para consultar los servicios por categoria.
-function getServicesByTipoDeActividad(response, categoria, atractivos) {
+// Funcion para consultar los servicios por Tipo de actividad
+function getServicesByTipoDeActividad(response, tipoDeActividad, atractivos) {
   var ref;
   ref = admin.database().ref("servicio"); // Creamos una variable que  apunta al nodo "servicio".
   // Buscamos todos los servicios que sean de la categoria buscada
-  return ref.orderByChild("tipoDeActividad").equalTo(categoria).once("value")
-    .then( snapshot => {
+  return ref
+    .orderByChild("tipoDeActividad")
+    .equalTo(tipoDeActividad)
+    .once("value")
+    .then(snapshot => {
       var listaServicio = {}; // Para almacenar todos los datos encontrados.
       var resultToSendDialogflow = ""; // Variable para enviar el resultado a Dialogflow.
       snapshot.forEach(childSnapshot => {
@@ -195,18 +257,26 @@ function getServicesByTipoDeActividad(response, categoria, atractivos) {
           "Lo siento, no pude encontrar la información necesaria para responder tu duda.";
       } else {
         // Enviamos los valores da la consulta a Dialogflow.
-        if (!atractivos) { // Sirve para cuando el usuario quiera saber atractivos turisticos fuera de la zona.
-          resultToSendDialogflow = "Lo siento, no puedo brindarle información de estos atractivos turísticos, " +  
-          "porque no pertenecen al centro histórico de la ciudad de Latacunga. Sin embargo, te puedo mostrar las " + 
-          "siguientes agencias de viajes que hay en la zona.";
-        } else { // Para dar la respuesta normal consultado de Firebase.
+        if (!atractivos) {
+          // Sirve para cuando el usuario quiera saber atractivos turisticos fuera de la zona.
           resultToSendDialogflow =
-          "Estos son algunos de los lugares que ofrecen servicio de " +
-          categoria + " en la zona ";
+            "Lo siento, no puedo brindarle información de estos atractivos turísticos, " +
+            "porque no pertenecen al centro histórico de la ciudad de Latacunga. Sin embargo, te puedo mostrar las " +
+            "siguientes agencias de viajes que hay en la zona.";
+        } else {
+          // Para dar la respuesta normal consultado de Firebase.
+          resultToSendDialogflow =
+            "Estos son algunos de los lugares que ofrecen servicio de " +
+            tipoDeActividad +
+            " en la zona ";
         }
       }
       // Enviamos el resultado a Dialogflow.
-      return sendResponseToDialogflow( response, resultToSendDialogflow, listaServicio );
+      return sendResponseToDialogflow(
+        response,
+        resultToSendDialogflow,
+        listaServicio
+      );
     });
 }
 
@@ -228,7 +298,7 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest(
         break;
       case "consultarAtractivoEnElArea":
         // Llamamos a la funcion para consultar atractivos y enviamos request y response.
-        getTouristAttractions(request, response);
+        searchTouristAttractions(request, response);
         break;
       case "consultarAgenciasDeViajeEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
@@ -244,15 +314,23 @@ exports.virtualAssistantLatacungaWebhook = functions.https.onRequest(
         break;
       case "consultarRecreacionDiversionEsparcimientoEnElArea":
         // Llamamos a la funcion para consultar servicios y enviamos request, response y true.
-        getServicesByTipoDeActividad(response, "Recreación, diversión, esparcimiento", true);
+        getServicesByTipoDeActividad(
+          response,
+          "Recreación, diversión, esparcimiento",
+          true
+        );
         break;
       case "attractionOutsideHistoricCenterAction":
         // Llamamos a la funcion para consultar servicios y enviamos request, response y false.
         getServicesByTipoDeActividad(response, "Agencia de viajes", false);
-        break;  
+        break;
       default:
         // En caso de que niguna accion sea identificada.
-        sendResponseToDialogflow(response, "La acción no fue identificada", null);
+        sendResponseToDialogflow(
+          response,
+          "La acción no fue identificada",
+          null
+        );
     }
   }
 );
